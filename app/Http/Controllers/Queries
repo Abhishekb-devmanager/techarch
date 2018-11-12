@@ -1,0 +1,46 @@
+$result =  DB::table('movies')->join('credits', 
+                        function($join)
+                        {
+                            $searchStr = "Denzel Washington";
+                            $join->on('movies.movie_id','=','credits.movie_id')
+                                ->where(DB::raw('credits.cast->>"$[0].name"'),'LIKE', '%'.$searchStr.'%')
+                                ->orWhere(
+                                    function($query)
+                                    {
+                                        $searchStr2 = "Steven Spielberg";
+                                        $searchJobStr2 = "Director";
+                                        $query->where(DB::raw('credits.crew->>"$[0].job"'),'=', $searchJobStr2)
+                                        ->where(DB::raw('credits.crew->>"$[0].name"'),'LIKE', '%'.$searchStr2.'%');
+                                    });
+                                })
+                        ->select('movies.title')
+                        ->orderBy('movies.title')
+                        ->groupBy('movies.id')
+                        ->get();
+$result =  DB::table('movies')->join('credits', 
+                        function($join)
+                        {
+                            $searchStr = "Denzel Washington";
+                            $join->on('movies.movie_id','=','credits.movie_id')
+                                ->where(DB::raw('credits.cast->>"$[0].name"'),'LIKE', '%'.$searchStr.'%')
+                                ->orWhere(
+                                    function($query)
+                                    {
+                                        $searchStr2 = "Steven Spielberg";
+                                        $searchJobStr2 = "Director";
+                                        $query->where(DB::raw('credits.crew->>"$[0].job"'),'=', $searchJobStr2)
+                                        ->where(DB::raw('credits.crew->>"$[0].name"'),'LIKE', '%'.$searchStr2.'%');
+                                    });
+                                })
+                        ->select('movies.title')
+                        ->orderBy('movies.title')
+                        ->groupBy('movies.id')
+                        ->get();
+Error Code: 3141. Invalid JSON text in argument 1 to function json_contains: "Invalid value." at position 0.
+
+select `movies`.`title` from `movies` inner join `credits` on `movies`.`movie_id` = `credits`.`movie_id` where json_contains(credits.cast->>"$[0].name", "Denzel Washington") and json_contains(credits.crew->>"$[0].job", "Director") and json_contains(credits.crew->>"$[0].name", "Steven Spielberg") group by `movies`.`id` order by `movies`.`title` asc 
+
+->whereRaw('JSON_CONTAINS(credits.crew->>"$[0].job","Director")')
+
+
+select `movies`.`title` from `credits` inner join `movies` on `movies`.`movie_id` = `credits`.`movie_id` where json_contains(`credits`.`cast`->>'$.""$[0].name""', ?) group by `movies`.`id` order by `movies`.`title` asc
