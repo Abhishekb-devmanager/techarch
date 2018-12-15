@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Validator;
 use Response;
+use Config;
 
 class CreditsController extends Controller
 {
@@ -78,13 +79,11 @@ class CreditsController extends Controller
     }
 
     function searchPref($preferencesArray, $prefType = "favourite_actors"){
-        
+
         $resultArr = array();
         $credits = Credits::query();
-        
-
-        $finalQuery = $this->getQuerySting();
-
+    
+        $finalQuery = $this->getQuerySting($preferencesArray, $prefType);
         
         $result =  DB::table('credits')
                         ->select('credits.title')
@@ -119,74 +118,68 @@ class CreditsController extends Controller
     function searchFor(Request $request, $type){
         $typeStr = $request->query('type');
         $searchResult=[];
-
+        $preferencesArray=[];
+        $prefStr = "";
         switch ($typeStr) {
-             case '1':
-                 $preferencesArray = array("Denzel Washington",
+             case "1":
+                $preferencesArray = array("Denzel Washington",
                                   "Kate Winslet",
                                   "Emma Suárez",
                                   "Tom Hanks");
-                 $searchResult = $this->searchPref($preferencesArray);
+                 $prefStr = \Config::get('constants.searchType.fav_actors');
                  break;
             
-            case '2':
+            case "2":
                  $preferencesArray = array("Steven Spielberg",
                                             "Martin Scorsese",
                                             "Pedro Almodóvar");
-                 $searchResult = $this->searchPref($preferencesArray);
+                 $prefStr = \Config::get('constants.searchType.fav_directors');
                  break;
             
              default:
                  break;
         }
+        $searchResult = $this->searchPref($preferencesArray,$prefStr);
         return response()->json($searchResult);
     }
+
 
     /*
         function to generate different query string based on different types of searches criteria 
         for eg. user preferences, fav actors, directors or a combination of both
     */
-    function getQuerySting($prefType = Config::get('constants.fav_actors')){
-        //if(empty($prefType))
-            // $prefType = Config::get('constants.fav_actors');
+    function getQuerySting($preferencesArray, $prefType){
 
-            switch ($prefType) {
-                case Config::get('constants.fav_actors'):
+        $queryFunction = "JSON_SEARCH(";
+        $functionParameter = ", 'one', ";
+        $queryCondition = ") IS NOT NULL";
+        $operator = " or ";
+        $finalQuery = "";
+        switch ($prefType) {
+            
+            case \Config::get('constants.searchType.fav_actors'):
+                $queryCol = "credits.cast";   
+                break; 
+            case \Config::get('constants.searchType.fav_directors'):
+                $queryCol = "credits.crew";
+                break;
+            
+            case \Config::get('constants.searchType.fav_actors_directors'):
+                break;
 
-                    $queryp1 ="JSON_SEARCH(credits.cast,'one',";
-                    $queryp2 = ") IS NOT NULL";
-                    $operator = " or ";
-                    $finalQuery = "";
-                
-                foreach($preferencesArray as $key => $pref){
-                    
-                    $finalQuery = $finalQuery.$queryp1."'".$pref."'".$queryp2;
-                    
-                    end($preferencesArray);
-        
-                    if ($key !== key($preferencesArray))
-                        $finalQuery = $finalQuery.$operator;
-                    
-                }
-                echo $finalQuery;
-        
-                    break;
-               
-                case Config::get('constants.fav_directors'):
-                    $preferencesArray = array("Steven Spielberg",
-                                               "Martin Scorsese",
-                                               "Pedro Almodóvar");
-                    $searchResult = $this->searchPref($preferencesArray);
-                    break;
-                
-                case Config::get('constants.fav_actors_directors'):
+            default:
+                $queryCol = "credits.cast";   
+                break;
+        }
+        foreach($preferencesArray as $key => $pref){
+            
+            $finalQuery = $finalQuery.$queryFunction.$queryCol.$functionParameter ."'".$pref."'".$queryCondition;
+            // check if not last element of pref array
+            end($preferencesArray);
 
-
-                    break;
-
-                default:
-                    break;
-
-
+            if ($key !== key($preferencesArray))
+                $finalQuery = $finalQuery.$operator;
+        }
+        return $finalQuery;
     }
 }

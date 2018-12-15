@@ -44,3 +44,16 @@ select `movies`.`title` from `movies` inner join `credits` on `movies`.`movie_id
 
 
 select `movies`.`title` from `credits` inner join `movies` on `movies`.`movie_id` = `credits`.`movie_id` where json_contains(`credits`.`cast`->>'$.""$[0].name""', ?) group by `movies`.`id` order by `movies`.`title` asc
+
+
+select count(*) from (
+select `credits`.`title` from `credits` 
+where JSON_SEARCH(credits.cast,'one','Denzel Washington') IS NOT NULL 
+or JSON_SEARCH(credits.cast,'one','Kate Winslet') IS NOT NULL 
+or JSON_SEARCH(credits.cast,'one','Emma Suárez') IS NOT NULL 
+or JSON_SEARCH(credits.cast,'one','Tom Hanks') IS NOT NULL 
+or JSON_SEARCH(credits.crew,'one','Steven Spielberg') IS NOT NULL 
+or JSON_SEARCH(credits.crew,'one','Martin Scorsese') IS NOT NULL 
+or JSON_SEARCH(credits.crew,'one','Pedro Almodóvar')  IS NOT NULL 
+order by `credits`.`title` asc
+) final
